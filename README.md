@@ -22,6 +22,7 @@ In particular, these types of configs are understandable by netcop:
 - Cisco IOS, NX-OS, IOS-XR
 - Huawei VRP
 - Juniper JunOS
+- Quagga / FRR
 
 There should be many more of them, I just have not checked yet.
 
