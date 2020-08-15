@@ -1,9 +1,13 @@
 # pylint:disable=missing-module-docstring,missing-function-docstring,redefined-outer-name
 
-import io
 import sys
 from pytest import fixture
 from netcop import Conf
+
+if sys.version_info < (3,):
+    from io import BytesIO as StringIO
+else:
+    from io import StringIO
 
 if sys.version_info >= (3, 3):
     from ipaddress import ip_address
@@ -131,7 +135,7 @@ def test_dump():
         !
     """)
 
-    buff = io.StringIO()
+    buff = StringIO()
     conf.dump(file=buff, indent="    ")
     assert buff.getvalue() == """
 snmp server 1
@@ -147,7 +151,7 @@ interface IF2
 !
 """[1:]
 
-    buff = io.StringIO()
+    buff = StringIO()
     conf['interface if1 ip'].dump(file=buff, indent="    ")
     assert buff.getvalue() == """
 [interface IF1 ip]
@@ -155,7 +159,7 @@ interface IF2
     address 2.2.2.2 secondary
 """[1:]
 
-    buff = io.StringIO()
+    buff = StringIO()
     conf['stp'].dump(file=buff, indent="    ")
     assert buff.getvalue() == "[stp] mode mstp 1\n"
 
@@ -184,7 +188,7 @@ interface IF2
         }
     """)
 
-    buff = io.StringIO()
+    buff = StringIO()
     jconf.dump(file=buff, indent="    ")
     assert buff.getvalue() == """
 forwarding-options {
@@ -211,7 +215,7 @@ forwarding-options {
 }
 """[1:]
 
-    buff = io.StringIO()
+    buff = StringIO()
     key = 'forwarding-options family inet output flow-server'
     jconf[key].dump(file=buff, indent="    ")
     assert buff.getvalue() == """[%s] 10.60.2.1 { # The IP address and port of the flow server.

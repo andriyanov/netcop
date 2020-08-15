@@ -3,7 +3,7 @@
 # Sorry for that.
 
 """
-Netcop — NETwork COnfig Parser
+Netcop - NETwork COnfig Parser
 
 This Python library helps navigating and querying textual (CLI-style) configs of network devices.
 """
@@ -276,6 +276,9 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         Whether the node is empty
         """
         return self._line is not None
+
+    def __nonzero__(self):
+        return self.__bool__()
 
     def items(self):
         """
