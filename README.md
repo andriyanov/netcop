@@ -7,6 +7,14 @@ This Python library helps navigating and querying textual (CLI-style) configs of
 
 It does not allow to modify nor to compare configs, as the [CiscoConfigParse][1] does, but provides a nice and simple query API.
 
+## Installation
+Netcop works with both Python 2.7 and Python 3.
+
+To install it as a package, use this command:
+
+    python -m pip install https://github.com/andriyanov/netcop/archive/master.tar.gz
+
+
 ## Vendor compatibility
 Netcop works by parsing hierarchical text configs that use newline-separated statements, whitespace indentation of blocks and keywords prefixes as a config path. Thus, it is not limited to a particular vendor's syntax.
 
