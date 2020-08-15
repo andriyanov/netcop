@@ -2,6 +2,12 @@
 # which of course requires some ugly conditionals and old-style syntax throughout the code.
 # Sorry for that.
 
+"""
+Netcop — NETwork COnfig Parser
+
+This Python library helps navigating and querying textual (CLI-style) configs of network devices.
+"""
+
 import fnmatch
 import re
 import sys
@@ -19,6 +25,7 @@ if sys.version_info >= (3, 3):
     from ipaddress import ip_address, ip_network
 
 if False:  # pylint:disable=using-constant-test
+    # pylint: disable=unused-import
     from typing import Dict, Tuple, List, Optional, Iterable
 
 
@@ -188,6 +195,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         self._index = index
 
     def expand(self, key, return_conf=False):
+        # type: (str, bool) -> Iterable[Tuple[str, ...]]
         """
         Iterates over all possible paths in config by given :key selector with wildcards
         Returns tuples with the length equal to the number of wildcard placeholders in the :key
@@ -202,7 +210,6 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
                 if not conf['secondary']:
                     print(ifname, ip)
         """
-        # type: (str, bool) -> Iterable[Tuple[str, ...]]
         if not key:
             if return_conf:
                 yield (self,)  # type: ignore

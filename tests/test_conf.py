@@ -1,10 +1,12 @@
+# pylint:disable=missing-module-docstring,missing-function-docstring,redefined-outer-name
+
 import io
-from ipaddress import ip_address
-from pytest import fixture
 import sys
+from pytest import fixture
 from netcop import Conf
 
-# pylint:disable=missing-function-docstring,redefined-outer-name
+if sys.version_info >= (3, 3):
+    from ipaddress import ip_address
 
 
 @fixture
@@ -58,6 +60,7 @@ def jconf():
         }
     }
     ''')
+
 
 def test1(conf):
     assert list(conf['snmp server']) == ['1', '2']
@@ -221,7 +224,8 @@ def test_junos(jconf):
     f_o = jconf['forwarding-options']
     assert f_o['sampling input rate'].int == 1
     assert f_o['family inet']
-    assert f_o['family inet output flow-server'].ips == [ip_address('10.60.2.1')]
+    if "ip_address" in globals():
+        assert f_o['family inet output flow-server'].ips == [ip_address('10.60.2.1')]
 
     assert f_o['family inet output apply-groups'].junos_list == ['one', 'two', 'three']
     assert f_o['sampling input rate'].junos_list == ['1']
