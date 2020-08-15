@@ -26,7 +26,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest mypy pylint
+        pip install flake8 pytest pylint
+        dpkg --compare-versions "${{ matrix.python-version }}" lt 3.5 || \
+          pip install mypy
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint
       run: |
@@ -35,7 +37,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --exit-zero
         python -m pylint netcop tests || true
-        python -m mypy netcop || true
+        dpkg --compare-versions "${{ matrix.python-version }}" lt 3.5 || python -m mypy netcop || true
     - name: Test with pytest
       run: |
         python -m pytest
