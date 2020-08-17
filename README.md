@@ -18,20 +18,20 @@ To install it as a package, use this command:
 ## Vendor compatibility
 Netcop works by parsing hierarchical text configs that use newline-separated statements, whitespace indentation of blocks and keywords prefixes as a config path. Thus, it is not limited to a particular vendor's syntax.
 
-In particular, these types of configs are understandable by netcop:
+In particular, these types of configs are supported by Netcop:
 - Cisco IOS, NX-OS, IOS-XR
 - Huawei VRP
 - Juniper JunOS
 - Quagga / FRR
 
-There should be many more of them, I just have not checked yet.
+There should be many more of them, I have not checked others yet.
 
-However, Netcop does not have any idea of the semantics of a config — it can't guess the type of data relying by a given config path whether it is a list, an int, a string or an IP address. It's always a user who knows the semantics and treats a given path to be of a particular type.
+However, Netcop does not have any idea of the config semantics — it can't guess the type of data relying by a given config path whether it is a list, an int, a string or an IP address. It's always a user who knows the semantics and treats a given path to be of a particular type.
 
 
 ## Usage guide
 
-Imagine we have this simple config to parse:
+Let's say we have this simple config to parse:
 ```python
 c = netcop.Conf('''
 interface Port-channel1
@@ -50,11 +50,11 @@ interface Loopback0
 Below are some examples of processing this config.
 
 ### Indexing
-The result of parsing looks very much like a Python `dict` and tries hard to keep its API similar to what you can expect from a dict.
+The result of parsing looks very much like a Python `dict` and Netcop tries hard to keep its API similar to what you can expect from a dict.
 
 The key operation you can do with a `Conf` object is to get a sub-object by a string key with the `[]` operator.
 
-Then we just use either of the following to get a part (slice) of the config as an another `Conf` object that has the same API for subsequent queries:
+Then we just use any of the following expressions to get a part (slice) of the config as another `Conf` object that has the same API for subsequent queries:
 - `c['interface']`
 - `c['interface Port-channel1']`
 - `c['interface Port-channel2 ip address']`
@@ -78,7 +78,7 @@ Output:
 
     ['Port-channel1', 'Port-channel2', 'Loopback0']
 
-Just as it is with a dict, you can get the same result just by iterating on an object:
+Just as it is with a dict, you can get the same result by iterating over an object:
 ```python
 [i for i in c['interface']]
 ```
@@ -103,7 +103,7 @@ for ifname, iface_c in c['interface'].items():
 ```
 
 ### Checking
-In a bool context a `Conf` object returns whether it's empty or not, or in other words, whether a specified config path exists.
+In a bool context a `Conf` object returns if it's empty, or in other words, if a specified config path exists.
 ```python
 # __bool__ operator works:
 bool(c) == True
@@ -120,7 +120,7 @@ bool(c['interface Port-channel2 no ip address']) == False
 ```
 
 ### Getting values
-By far we have seen how to iterate over multiple values by a given path. But what if we're sure that there is only one value for a path? Then you can use any of the scalar properties of a `Conf` object:
+So far, we have seen how to iterate over multiple values by a given path. What if we're sure that there is only one value for a path? Then you can use any of the scalar properties of a `Conf` object:
 - `.word` - a single string keyword
 - `.int` - an integer value
 - `.ip`, `.cidr` (*since Python 3.3*) - a `IPAddress` or `IPNetwork` object from the `ipaddress` standard library
@@ -150,7 +150,7 @@ Resulting output:
     Port-channel2 10.0.0.2
     Port-channel2 10.1.0.2
 
-The `.expand()` method iterates over all possible paths in config by a given selector with wildcards using glob syntax. It returns tuples with the length equal to the number of wildcard placeholders in the given key.
+The `.expand()` method iterates over all possible paths in a config by a given selector with wildcards using glob syntax. It returns tuples with the length equal to the number of wildcard placeholders in a given key.
 
 
 [1]: https://github.com/mpenning/ciscoconfparse
