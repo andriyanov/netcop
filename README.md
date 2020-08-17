@@ -1,11 +1,11 @@
 # Netcop — NETwork COnfig Parser
 
-This Python library helps navigating and querying textual (CLI-style) configs of network devices. If may be useful to solve such problems like:
-- list the interfaces a device has
-- extract IP address or VLAN configurations of a network interface
-- check if a particular option is properly set in all the relevant places
+This Python library helps navigating and querying textual (CLI-style) configs of network devices. It may be useful for solving such problems like:
+- listing a device interfaces
+- extracting IP address or VLAN configurations of a network interface
+- checking if a particular option is properly set in all the relevant blocks
 
-It does not allow to modify nor to compare configs, as the [CiscoConfigParse][1] does, but provides a nice and simple query API.
+It does not support modifying and comparing of configs, as the [CiscoConfigParse][1] does, but provides a nice and simple query API.
 
 ## Installation
 Netcop works with both Python 2.7 and Python 3.
