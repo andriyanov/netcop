@@ -12,7 +12,7 @@ Netcop works with both Python 2.7 and Python 3.
 
 To install it as a package, use this command:
 
-    python -m pip install https://github.com/andriyanov/netcop/archive/master.tar.gz
+    python3 -m pip install netcop
 
 
 ## Vendor compatibility
