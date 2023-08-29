@@ -40,7 +40,7 @@ class Conf:
         conf['interface']['Ethernet1/0/1']['ip']['address']
     """
 
-    __slots__ = ("_line", "_lineno", "_trace", "_children", "_index")
+    __slots__ = ("_line", "_orig_line", "_lineno", "_trace", "_children", "_index")
 
     def __init__(self, text: str = "", lines: Optional[List[str]] = None):
         """
@@ -48,6 +48,7 @@ class Conf:
         Config may be either a text or a sequence of lines (e.g. filehandle).
         """
         self._line: Optional[str] = None
+        self._orig_line: str = ""
         self._lineno = 0
         self._trace: Tuple[str, ...] = ()
         self._children: List[Conf] = []
@@ -60,9 +61,10 @@ class Conf:
             self._line = ""
 
     @classmethod
-    def _new(cls, line, lineno, children=()) -> "Conf":
+    def _new(cls, line, lineno, children=(), orig_line=None) -> "Conf":
         ret = cls()
         ret._line = line
+        ret._orig_line = orig_line or line or ""
         ret._lineno = lineno
         ret._children = list(children)
         return ret
@@ -143,17 +145,26 @@ class Conf:
             file.write("[%s]" % (self.trace))
             file.write("\n" if not self._line else " ")
 
-        for line, level in self._iter_lines(-1):
+        for line, level in self._iter_lines(-1, False):
             _put_line(line, level)
 
-    def _iter_lines(self, depth):
+    def _iter_lines(self, depth, orig_lines):
         if self._line:
-            yield self._line, depth
+            yield (self._orig_line if orig_lines else self._line), depth
         for c in self._children:
-            yield from c._iter_lines(depth + 1)
+            yield from c._iter_lines(depth + 1, orig_lines)
 
     def lines(self) -> List[str]:
-        return [line for line, _ in self._iter_lines(0)]
+        """
+        Returns list of matched lines, relative to match prefix
+        """
+        return [line for line, _ in self._iter_lines(0, False)]
+
+    def orig_lines(self) -> List[str]:
+        """
+        Returns list of original lines from the config that matched the prefix
+        """
+        return [line for line, _ in self._iter_lines(0, True)]
 
     def _ensure_scalar(self):
         self._reindex()
@@ -178,13 +189,13 @@ class Conf:
         index = {}
         token_lc, token, rest = self._next_token(self._line)
         if token:
-            new = Conf._new(rest, self._lineno, self._children)
+            new = Conf._new(rest, self._lineno, self._children, self._orig_line)
             index[token_lc] = (token, [new])
         else:
             for c in self._children:
                 token_lc, token, rest = self._next_token(c._line)
                 if token:
-                    new = Conf._new(rest, c._lineno, c._children)
+                    new = Conf._new(rest, c._lineno, c._children, c._orig_line)
                     index.setdefault(token_lc, (token, []))[1].append(new)
         self._index = index
 
@@ -218,15 +229,16 @@ class Conf:
                 raise ValueError("'~' should be the last token in query")
             if self._line:
                 yield (
-                    self._line,
+                    self._line.strip(),
                     self._expand_cfg(self.trace + " " + self._line),
-                ) if return_conf else (self._line,)
+                ) if return_conf else (self._line.strip(),)
             else:
                 for c in self._children:
+                    assert c._line
                     yield (
-                        c._line,
+                        c._line.strip(),
                         c._expand_cfg(self.trace + " " + c._line),
-                    ) if return_conf else (c._line,)
+                    ) if return_conf else (c._line.strip(),)
         elif any(x in token for x in "*?["):
             for k in fnmatch.filter(self, token):
                 for ret in self[k].expand(rest, return_conf):
@@ -237,7 +249,10 @@ class Conf:
 
     def _expand_cfg(self, trace_str: str) -> "Conf":
         ret = self._new(
-            None if not self._children else "", self._lineno, self._children
+            None if not self._children else "",
+            self._lineno,
+            self._children,
+            self._orig_line,
         )
         ret._trace = tuple(trace_str.split())
         return ret
@@ -257,7 +272,7 @@ class Conf:
             ret = ret_list[0]
         else:
             # ret_list can not be empty
-            ret = Conf._new("", ret_list[0]._lineno, ret_list)
+            ret = Conf._new("", ret_list[0]._lineno, ret_list, ret_list[0]._orig_line)
 
         ret._trace = (*self._trace, token)
 
@@ -354,6 +369,10 @@ class Conf:
             if token:
                 items.append(token)
         return " ".join(items)
+
+    @property
+    def tails(self):
+        return [x for x, in self.expand("~")]
 
     @property
     def quoted(self):

@@ -27,10 +27,11 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install -e .
     - name: Lint
       run: |
         ruff .
         mypy .
     - name: Test with pytest
       run: |
-        pytest
+        pytest tests
