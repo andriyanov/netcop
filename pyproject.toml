@@ -1,0 +1,15 @@
+[tool.ruff]
+# Enable Pyflakes `E` and `F` codes by default.
+select = [
+  "E", "F", # pyflakes
+  "I", # isort
+  "UP", # pyupgrade
+  "RUF", # ruff-specific rules
+]
+target-version = "py38"
+line-length = 120
+
+[tool.mypy]
+ignore_missing_imports = true
+# disallow_untyped_defs = true
+check_untyped_defs = true

@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/andriyanov/netcop",
-    packages=['netcop'],
+    packages=["netcop"],
     classifiers=[
         "Programming Language :: Python",
         "License :: OSI Approved :: MIT License",
