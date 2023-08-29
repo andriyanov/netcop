@@ -65,7 +65,7 @@ def jconf():
     )
 
 
-def test1(conf):
+def test1(conf: Conf):
     assert list(conf["snmp server"]) == ["1", "2"]
 
     assert conf["snmp server 1"]
@@ -77,23 +77,23 @@ def test1(conf):
     assert "stp mode mstp 1" in conf
 
 
-def test2(conf):
+def test2(conf: Conf):
     assert conf["interface if1 ip address 1.1.1.1"]
     assert not conf["interface if1 ip address 1.1.1.2"]
     assert not conf["interface if3 ip address"]
     assert conf["stp mode mstp 1"]
 
 
-def test3(conf):
+def test3(conf: Conf):
     assert conf["interface if1 no"].tail == "ip redirects"
 
 
-def test4(conf):
+def test4(conf: Conf):
     assert len(conf["interface"]) == 2
     assert list(conf["interface"]) == ["IF1", "IF2"]
 
 
-def test5(conf):
+def test5(conf: Conf):
     expected = {"IF2": "hello world"}
     actual = {}
     for ifname, iface in conf["interface"].items():
@@ -104,13 +104,13 @@ def test5(conf):
     assert conf["interface if2 long-description"].quoted == "hello world"
 
 
-def test6(conf):
+def test6(conf: Conf):
     assert conf["stp"].word == "mode"
     assert conf["stp mode"].word == "mstp"
     assert conf["stp mode mstp"].word == "1"
 
 
-def test_repr(conf):
+def test_repr(conf: Conf):
     assert repr(conf) == "Conf()['']"
     assert repr(conf["interface"]) == "Conf()['interface']"
     assert repr(conf["interface if1 ip"]) == "Conf()['interface IF1 ip']"
@@ -244,7 +244,7 @@ version 5; # Records are sent to the flow server using version 5 format.
     )
 
 
-def test_junos(jconf):
+def test_junos(jconf: Conf):
     f_o = jconf["forwarding-options"]
     assert f_o["sampling input rate"].int == 1
     assert f_o["family inet"]
@@ -255,7 +255,7 @@ def test_junos(jconf):
     assert f_o["sampling input rate"].junos_list == ["1"]
 
 
-def test_expand(conf):
+def test_expand(conf: Conf):
     assert list(conf.expand("interface * ip address *")) == [
         ("IF1", "1.1.1.1"),
         ("IF1", "2.2.2.2"),
@@ -267,7 +267,7 @@ def test_expand(conf):
     # assert list(conf.expand('interface')) == [(), ()]
 
 
-def test_expand2(conf):
+def test_expand2(conf: Conf):
     assert list(conf.expand("interface * ip address ~")) == [
         ("IF1", "1.1.1.1"),
         ("IF1", "2.2.2.2 secondary"),
@@ -276,15 +276,32 @@ def test_expand2(conf):
 
     assert list(conf.expand("interface * ip blah ~")) == []
 
+    assert conf["interface IF1 ip"].tails == [
+        "address 1.1.1.1",
+        "address 2.2.2.2 secondary",
+    ]
 
-def test_expand3(conf):
+
+def test_expand3(conf: Conf):
     assert list(conf.expand("interface ~")) == [
         ("IF1",),
         ("IF2",),
     ]
+    assert conf["interface"].tails == [
+        "IF1",
+        "IF2",
+    ]
 
 
-def test_lines(conf):
+def test_tails(conf: Conf):
+    assert conf["interface Something"].tails == []
+    assert conf["interface IF1 ip address 1.1.1.1"].tails == []
+    assert conf["interface IF1 stp"].tails == [
+        "more stp",
+    ]
+
+
+def test_lines(conf: Conf):
     assert conf["interface IF1"].lines() == [
         "    ip address 1.1.1.1",
         "    ip address 2.2.2.2 secondary",
@@ -294,7 +311,23 @@ def test_lines(conf):
         "    no ip redirects",
     ]
 
-    assert conf["interface IF1 ip"].lines() == [
-        "address 1.1.1.1",
-        "address 2.2.2.2 secondary",
+    assert conf["interface IF1 ip"].orig_lines() == [
+        "    ip address 1.1.1.1",
+        "    ip address 2.2.2.2 secondary",
+    ]
+
+    assert conf["interface"].orig_lines() == [
+        'interface IF1',
+        '    ip address 1.1.1.1',
+        '    ip address 2.2.2.2 secondary',
+        '    stp',
+        '        more stp',
+        '    !',
+        '    no ip redirects',
+        'interface IF2',
+        '    ip address 1.1.1.2',
+        '    no ip redirects',
+        '    ip unnumbered',
+        '    description hello world',
+        '    long-description "hello world" end',
     ]

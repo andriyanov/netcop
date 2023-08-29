@@ -5,7 +5,7 @@ with open("README.md") as fh:
 
 setuptools.setup(
     name="netcop",
-    version="1.0",
+    version="1.1.0",
     author="Alexey Andriyanov",
     author_email="alanm@bk.ru",
     description="A vendor-agnostic parser of network configs",

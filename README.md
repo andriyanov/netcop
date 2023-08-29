@@ -102,6 +102,28 @@ for ifname, iface_c in c['interface'].items():
         print(ifname, ip)
 ```
 
+### Iterating over raw config lines
+
+There're 3 ways of traversing lines of the config, or a sub-part of it:
+- `Conf.tails`: returns the list of matched lines tails, excluding matched prefix. Does
+  not return lines from the nested blocks. Lines are trimmed from whitespace.
+```python
+cfg = Conf("""
+snmp host A
+snmp host B
+""")
+print(cfg["snmp"].tails)
+```
+Output:
+```
+["host A", "host B"]
+```
+- `Conf.lines()`: Iterates over raw matched lines, like `.dump()` does. Lines may be
+  trimmed, if you specified prefix that covers the line partially, and may not be
+  trimmed if the prefix is not specified.
+- `Conf.orig_lines()`: Like `.lines()`, but lines are always in the same form as in the
+  original config (full and untrimmed), no matter which prefix is specified.
+
 ### Checking
 In a bool context a `Conf` object returns if it's empty, or in other words, if a specified config path exists.
 ```python
