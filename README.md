@@ -139,7 +139,7 @@ c['interface Port-channel2 ip address'].ip  # KeyError raised
 
 There are also list properties `.ints`, `.ips` and `.cidrs`, which are just type-converting iterators and shorthands for expressions like `[int(x) for x in c]`.
 
-### Wildcard indexing
+### Wildcard indexing with .expand()
 Netcop does not use regular expressions to make index lookups, it requires exact keywords in the config path. However, there are cases when it is useful to specify a config path with a pattern:
 ```python
 for ifname, ip in c.expand('interface po* ip address *'):
@@ -151,6 +151,20 @@ Resulting output:
     Port-channel2 10.1.0.2
 
 The `.expand()` method iterates over all possible paths in a config by a given selector with wildcards using glob syntax. It returns tuples with the length equal to the number of wildcard placeholders in a given key.
+
+There's a special trailing glob pattern supported `~`. It means capture the rest of the line and can only occur at the end of the expand query string, separated by space.
+Example:
+```python
+>>> list(c.expand("interface * ip address ~"))
+[
+    ("Port-channel2", "10.0.0.2 255.255.0.0"),
+    ("Port-channel2", "10.1.0.2 255.255.0.0 secondary"),
+    ("Loopback0", "1.1.1.1 255.255.255.255"),
+]
+```
+
+The number of elements in the returned tuple always equals to the number of caputuring globs in the query string.
+If the optional `return_conf=True` kwarg is passed, there's the extra trailing element in the resulting tuples with the subsequent `Conf` object for the matched prefix.
 
 
 [1]: https://github.com/mpenning/ciscoconfparse
