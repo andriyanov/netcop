@@ -1,11 +1,12 @@
 # This tiny lib is intended to work with the old versions of Python < (2.7),
-# which of course requires some ugly conditionals and old-style syntax throughout the code.
-# Sorry for that.
+# which of course requires some ugly conditionals and old-style syntax throughout the
+# code. Sorry for that.
 
 """
 Netcop - NETwork COnfig Parser
 
-This Python library helps navigating and querying textual (CLI-style) configs of network devices.
+This Python library helps navigating and querying textual (CLI-style) configs of network
+devices.
 """
 
 import fnmatch
@@ -24,9 +25,10 @@ if sys.version_info < (3, 7):
 if sys.version_info >= (3, 3):
     from ipaddress import ip_address, ip_network
 
-if False:  # pylint:disable=using-constant-test
+_always_false = False
+if _always_false:  # pylint:disable=using-constant-test
     # pylint: disable=unused-import
-    from typing import Dict, Tuple, List, Optional, Iterable
+    from typing import Dict, Iterable, List, Optional, Tuple
 
 
 # ====
@@ -56,6 +58,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
     Moreover, the same result could be retrieved by multiple sequential lookups:
         conf['interface']['Ethernet1/0/1']['ip']['address']
     """
+
     __slots__ = ("_line", "_lineno", "_trace", "_children", "_index")
 
     def __init__(self, text="", lines=None):
@@ -88,7 +91,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         stack = [(self, "")]  # type: List[Tuple[Conf, "indent"]]
 
         for lineno, line in enumerate(lines):
-            line = line.rstrip("\r\n")
+            line = line.rstrip()
             m = re.match(r"(\s*)", line)
             if not m:
                 # if is used to avoid unnesessary string formatting
@@ -109,19 +112,19 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
 
     @staticmethod
     def _next_token(string):
-        no_more = ('', '', '')
+        no_more = ("", "", "")
         if not string:
             return no_more
         items = string.split(None, 1)
         if not items:
             return no_more
         token = items[0]
-        if token in ('{', '}', '#', '!'):
+        if token in ("{", "}", "#", "!"):
             return no_more
-        rest = ''
+        rest = ""
         if len(items) == 2:
             rest = items[1]
-        if token.endswith(';') and (rest == '' or rest.startswith(('#', '!'))):
+        if token.endswith(";") and (rest == "" or rest.startswith(("#", "!"))):
             token = token[:-1]
         return token.lower(), token, rest
 
@@ -133,7 +136,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         return " ".join(self._trace)
 
     def __repr__(self):
-        fmt_line = ''
+        fmt_line = ""
         if self._line:
             fmt_line = repr(self._line)
         ret = "%s(%s)" % (self.__class__.__name__, fmt_line)
@@ -141,7 +144,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
             ret += "[%r]" % self.trace
         return ret
 
-    def dump(self, file=None, indent="  ", _depth=0):
+    def dump(self, file=None, indent="  ", show_header=True):
         """
         Write the indented config subtree to a given file
         sys.stdout is used if file argument is unspecified.
@@ -151,30 +154,44 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         if file is None:
             file = sys.stdout
 
-        text = self._line.strip()
-        if _depth == 0 and self._trace:
-            file.write("%s[%s]" % (indent * _depth, self.trace))
-            if text:
-                file.write(" %s" % text)
-            file.write("\n")
-            _depth += 1
-        elif text:
-            file.write("%s%s\n" % (indent * _depth, text))
-            _depth += 1
+        def _put_line(line, level):
+            if indent is None:
+                file.write(line + "\n")
+            else:
+                file.write((indent * level) + line.strip() + "\n")
 
+        if self._trace and show_header:
+            file.write("[%s]" % (self.trace))
+            file.write("\n" if not self._line else " ")
+
+        for line, level in self._iter_lines(-1):
+            _put_line(line, level)
+
+    def _iter_lines(self, depth):
+        if self._line:
+            yield self._line, depth
         for c in self._children:
-            c.dump(file, indent, _depth)
+            yield from c._iter_lines(depth + 1)
+
+    def lines(self):
+        # type: () -> List[str]
+        return [line for line, _ in self._iter_lines(0)]
 
     def _ensure_scalar(self):
         self._reindex()
         if len(self._index) == 0:
-            raise KeyError("No entries in node [%r], line %d" % (self.trace, self._lineno))
+            raise KeyError(
+                "No entries in node [%r], line %d" % (self.trace, self._lineno)
+            )
         if len(self._index) > 1:
-            raise KeyError("Multiple entries (%d) match the key [%r], line %d" % (
-                len(self._index),
-                self.trace,
-                self._lineno,
-            ))
+            raise KeyError(
+                "Multiple entries (%d) match the key [%r], line %d"
+                % (
+                    len(self._index),
+                    self.trace,
+                    self._lineno,
+                )
+            )
         return list(self._index)[0]
 
     def _reindex(self):
@@ -198,8 +215,10 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         # type: (str, bool) -> Iterable[Tuple[str, ...]]
         """
         Iterates over all possible paths in config by given :key selector with wildcards
-        Returns tuples with the length equal to the number of wildcard placeholders in the :key
-        If :return_conf is set, the resulting tuples also contain the trailing Conf() object at their last element.
+        Returns tuples with the length equal to the number of wildcard placeholders in
+        the :key.
+        If :return_conf is set, the resulting tuples also contain the trailing Conf()
+        object at their last element.
 
         Example:
             for ifname, ip in Conf.expand('interface po* ip address *'):
@@ -218,13 +237,35 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
             return
         self._reindex()
         _, token, rest = self._next_token(key)
-        if any(x in token for x in "*?["):
+        if token == "~":
+            if rest:
+                raise ValueError("'~' should be the last token in query")
+            if self._line:
+                yield (
+                    self._line,
+                    self._expand_cfg(self.trace + " " + self._line),
+                ) if return_conf else (self._line,)
+            else:
+                for c in self._children:
+                    yield (
+                        c._line,
+                        c._expand_cfg(self.trace + " " + c._line),
+                    ) if return_conf else (c._line,)
+        elif any(x in token for x in "*?["):
             for k in fnmatch.filter(self, token):
                 for ret in self[k].expand(rest, return_conf):
                     yield (k,) + ret
         elif self[token]:
             for ret in self[token].expand(rest, return_conf):
                 yield ret
+
+    def _expand_cfg(self, trace_str):
+        # type: (str) -> Conf
+        ret = self._new(
+            None if not self._children else "", self._lineno, self._children
+        )
+        ret._trace = tuple(trace_str.split())
+        return ret
 
     # ==== dict-like API
     def __getitem__(self, key):
@@ -242,7 +283,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
             ret = ret_list[0]
         else:
             # ret_list can not be empty
-            ret = Conf._new('', ret_list[0]._lineno, ret_list)
+            ret = Conf._new("", ret_list[0]._lineno, ret_list)
 
         ret._trace = self._trace + (token,)
 
@@ -328,7 +369,8 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
     def tail(self):
         """
         Get the following keywords in the config line as a single string.
-        In case there is no single assosiated line one or there are multiple ones, a KeyError is raised.
+        In case there is no single assosiated line one or there are multiple ones, a
+        KeyError is raised.
         """
         self._ensure_scalar()
         items = []
@@ -343,18 +385,21 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
     def quoted(self):
         """
         Get the quoted string (without surrounding quotes) directly following the node.
-        If there is no quoted string following, returns just the next keyword, like .word.
-        In case there is no single assosiated line one or there are multiple ones, a KeyError is raised.
+        If there is no quoted string following, returns just the next keyword,
+        like .word.
+        In case there is no single assosiated line one or there are multiple ones,
+        a KeyError is raised.
         """
         self._ensure_scalar()
         quote_char = self._line[:1]
         try:
             if quote_char in ['"', "'"]:
-                return self._line[1:self._line.index(quote_char, 1)]
+                return self._line[1 : self._line.index(quote_char, 1)]
         except ValueError:
-            raise ValueError("No ending <%s> found in [%r], line %d: %r" % (
-                quote_char, self.trace, self._lineno, self._line
-            ))
+            raise ValueError(
+                "No ending <%s> found in [%r], line %d: %r"
+                % (quote_char, self.trace, self._lineno, self._line)
+            )
         return list(self)[0]
 
     @property
@@ -386,22 +431,25 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
     def junos_list(self):
         """
         Get the list of following keywords surrounded in [ ]
-        If there is no surrounding [ ], return the list of the single keyword that follows
+        If there is no surrounding [ ], return the list of the single keyword that
+        follows
         """
         self._ensure_scalar()
-        if self._line.startswith('['):
+        if self._line.startswith("["):
             items = self.tail.split()
-            if items[0] == '[' and items[-1] == ']':
+            if items[0] == "[" and items[-1] == "]":
                 return items[1:-1]
         return [self.word]
 
     if "ip_address" in globals():
+
         @property
         def ip(self):
             """
             Get the single following ip as an IPAddress object.
             In case there is no one or there are multiple ones, a KeyError is raised.
-            TypeError may be raised in case there is a keyword that can not be casted to the IPAddress type.
+            TypeError may be raised in case there is a keyword that can not be casted to
+            the IPAddress type.
             """
             return ip_address(self.word)
 
@@ -418,7 +466,8 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
             """
             Get the single following IP network as an IPNetwork object.
             In case there is no one or there are multiple ones, a KeyError is raised.
-            TypeError may be raised in case there is a keyword that can not be casted to the IPNetwork type.
+            TypeError may be raised in case there is a keyword that can not be casted to
+            the IPNetwork type.
             """
             return ip_network(self.word)
 
