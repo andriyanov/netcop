@@ -1,38 +1,19 @@
-# This tiny lib is intended to work with the old versions of Python < (2.7),
-# which of course requires some ugly conditionals and old-style syntax throughout the
-# code. Sorry for that.
-
 """
 Netcop - NETwork COnfig Parser
 
-This Python library helps navigating and querying textual (CLI-style) configs of network
-devices.
+This Python library helps navigating and querying textual (CLI-style) configs of
+network devices.
 """
 
 import fnmatch
 import re
 import sys
-
-ODict = dict
-if sys.version_info < (3, 7):
-    # since 3.7 dict is already ordered
-    try:
-        from collections import OrderedDict as ODict
-    except ImportError:
-        # OrderedDict is available since 2.7 or 3.1
-        pass
-
-if sys.version_info >= (3, 3):
-    from ipaddress import ip_address, ip_network
-
-_always_false = False
-if _always_false:  # pylint:disable=using-constant-test
-    # pylint: disable=unused-import
-    from typing import Dict, Iterable, List, Optional, Tuple
+from ipaddress import ip_address, ip_network
+from typing import Dict, Iterator, List, Optional, Tuple
 
 
 # ====
-class Conf(object):  # pylint:disable=useless-object-inheritance
+class Conf:
     """
     Get subnode of the config tree by a string key
     A key can be either a single keyword or space-separated sequence of them.
@@ -61,16 +42,16 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
 
     __slots__ = ("_line", "_lineno", "_trace", "_children", "_index")
 
-    def __init__(self, text="", lines=None):
+    def __init__(self, text: str = "", lines: Optional[List[str]] = None):
         """
         Parse given config into a tree.
         Config may be either a text or a sequence of lines (e.g. filehandle).
         """
-        self._line = None  # type: Optional[str]
+        self._line: Optional[str] = None
         self._lineno = 0
-        self._trace = ()  # type: Tuple[str, ...]
-        self._children = []  # type: List[Conf]
-        self._index = {}  # type: Dict[str, Tuple[str, List[Conf]]]
+        self._trace: Tuple[str, ...] = ()
+        self._children: List[Conf] = []
+        self._index: Dict[str, Tuple[str, List[Conf]]] = {}
         if text:
             self._parse(text.splitlines())
         elif lines:
@@ -79,16 +60,15 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
             self._line = ""
 
     @classmethod
-    def _new(cls, line, lineno, children=()):
-        ret = cls()  # type: Conf
-        # pylint: disable=protected-access
+    def _new(cls, line, lineno, children=()) -> "Conf":
+        ret = cls()
         ret._line = line
         ret._lineno = lineno
         ret._children = list(children)
         return ret
 
-    def _parse(self, lines):
-        stack = [(self, "")]  # type: List[Tuple[Conf, "indent"]]
+    def _parse(self, lines: List[str]) -> None:
+        stack = [(self, "")]
 
         for lineno, line in enumerate(lines):
             line = line.rstrip()
@@ -100,7 +80,6 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
             if line == indent:
                 continue
             node = Conf._new(line, lineno)
-            # pylint:disable=protected-access
             if len(indent) > len(stack[-1][1]):
                 stack[-1][0]._children.append(node)
                 stack.append((node, indent))
@@ -139,7 +118,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         fmt_line = ""
         if self._line:
             fmt_line = repr(self._line)
-        ret = "%s(%s)" % (self.__class__.__name__, fmt_line)
+        ret = f"{self.__class__.__name__}({fmt_line})"
         if self._trace or self._line is not None:
             ret += "[%r]" % self.trace
         return ret
@@ -173,8 +152,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         for c in self._children:
             yield from c._iter_lines(depth + 1)
 
-    def lines(self):
-        # type: () -> List[str]
+    def lines(self) -> List[str]:
         return [line for line, _ in self._iter_lines(0)]
 
     def _ensure_scalar(self):
@@ -192,27 +170,25 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
                     self._lineno,
                 )
             )
-        return list(self._index)[0]
+        return next(iter(self._index))
 
     def _reindex(self):
         if self._index:
             return
-        index = ODict()
+        index = {}
         token_lc, token, rest = self._next_token(self._line)
         if token:
             new = Conf._new(rest, self._lineno, self._children)
             index[token_lc] = (token, [new])
         else:
             for c in self._children:
-                # pylint:disable=protected-access
                 token_lc, token, rest = self._next_token(c._line)
                 if token:
                     new = Conf._new(rest, c._lineno, c._children)
                     index.setdefault(token_lc, (token, []))[1].append(new)
         self._index = index
 
-    def expand(self, key, return_conf=False):
-        # type: (str, bool) -> Iterable[Tuple[str, ...]]
+    def expand(self, key: str, return_conf: bool = False) -> Iterator[Tuple]:
         """
         Iterates over all possible paths in config by given :key selector with wildcards
         Returns tuples with the length equal to the number of wildcard placeholders in
@@ -254,13 +230,12 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         elif any(x in token for x in "*?["):
             for k in fnmatch.filter(self, token):
                 for ret in self[k].expand(rest, return_conf):
-                    yield (k,) + ret
+                    yield (k, *ret)
         elif self[token]:
             for ret in self[token].expand(rest, return_conf):
                 yield ret
 
-    def _expand_cfg(self, trace_str):
-        # type: (str) -> Conf
+    def _expand_cfg(self, trace_str: str) -> "Conf":
         ret = self._new(
             None if not self._children else "", self._lineno, self._children
         )
@@ -268,8 +243,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         return ret
 
     # ==== dict-like API
-    def __getitem__(self, key):
-        # type: (str) -> Conf
+    def __getitem__(self, key: str) -> "Conf":
         token_lc, _, rest = self._next_token(key)
         if not token_lc:
             return self
@@ -285,7 +259,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
             # ret_list can not be empty
             ret = Conf._new("", ret_list[0]._lineno, ret_list)
 
-        ret._trace = self._trace + (token,)
+        ret._trace = (*self._trace, token)
 
         if rest:
             return ret[rest]
@@ -343,7 +317,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         self._reindex()
         return (x[1] for x in self._index.values())
 
-    def get(self, key, default=None, type=None):  # pylint:disable=redefined-builtin
+    def get(self, key, default=None, type=None):
         """
         Get the following keyword by the given path (key)
         Optinal arguments are the default value and type convertion procedure.
@@ -391,6 +365,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         a KeyError is raised.
         """
         self._ensure_scalar()
+        assert self._line is not None
         quote_char = self._line[:1]
         try:
             if quote_char in ['"', "'"]:
@@ -400,7 +375,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
                 "No ending <%s> found in [%r], line %d: %r"
                 % (quote_char, self.trace, self._lineno, self._line)
             )
-        return list(self)[0]
+        return next(iter(self))
 
     @property
     def int(self):
@@ -435,6 +410,7 @@ class Conf(object):  # pylint:disable=useless-object-inheritance
         follows
         """
         self._ensure_scalar()
+        assert self._line is not None
         if self._line.startswith("["):
             items = self.tail.split()
             if items[0] == "[" and items[-1] == "]":

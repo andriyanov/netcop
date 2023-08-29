@@ -1,18 +1,11 @@
 # pylint:disable=missing-module-docstring,missing-function-docstring,redefined-outer-name
 
-import sys
+from io import StringIO
+from ipaddress import ip_address
 
 from pytest import fixture
 
 from netcop import Conf
-
-if sys.version_info < (3,):
-    from io import BytesIO as StringIO
-else:
-    from io import StringIO
-
-if sys.version_info >= (3, 3):
-    from ipaddress import ip_address
 
 
 @fixture
