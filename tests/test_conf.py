@@ -234,14 +234,10 @@ forwarding-options {
     buff = StringIO()
     key = "forwarding-options family inet output flow-server"
     jconf[key].dump(file=buff, indent="    ")
-    assert (
-        buff.getvalue()
-        == """[%s] 10.60.2.1 { # The IP address and port of the flow server.
+    assert buff.getvalue() == f"""[{key}] 10.60.2.1 {{ # The IP address and port of the flow server.
 port 2055;
 version 5; # Records are sent to the flow server using version 5 format.
 """
-        % key
-    )
 
 
 def test_junos(jconf: Conf):

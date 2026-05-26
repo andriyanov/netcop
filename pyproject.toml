@@ -1,3 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netcop"
+version = "1.1.1"
+description = "A vendor-agnostic parser of network configs"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  { name = "Alexey Andriyanov", email = "alanm@bk.ru" }
+]
+license = { text = "MIT" }
+classifiers = [
+  "Programming Language :: Python",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/andriyanov/netcop"
+
+[tool.setuptools]
+packages = ["netcop"]
+
 [tool.ruff]
 # Enable Pyflakes `E` and `F` codes by default.
 select = [
@@ -13,3 +39,10 @@ line-length = 120
 ignore_missing_imports = true
 # disallow_untyped_defs = true
 check_untyped_defs = true
+
+[project.optional-dependencies]
+dev = [
+  "ruff",
+  "mypy",
+  "pytest",
+]
