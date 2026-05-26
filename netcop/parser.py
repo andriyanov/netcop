@@ -77,7 +77,7 @@ class Conf:
             m = re.match(r"(\s*)", line)
             if not m:
                 # if is used to avoid unnesessary string formatting
-                assert m, "regexp must always match, line %r" % line
+                assert m, f"regexp must always match, line {line!r}"
             indent = m.group(1)
             if line == indent:
                 continue
@@ -122,7 +122,7 @@ class Conf:
             fmt_line = repr(self._line)
         ret = f"{self.__class__.__name__}({fmt_line})"
         if self._trace or self._line is not None:
-            ret += "[%r]" % self.trace
+            ret += f"[{self.trace!r}]"
         return ret
 
     def dump(self, file=None, indent="  ", show_header=True):
@@ -142,7 +142,7 @@ class Conf:
                 file.write((indent * level) + line.strip() + "\n")
 
         if self._trace and show_header:
-            file.write("[%s]" % (self.trace))
+            file.write(f"[{self.trace}]")
             file.write("\n" if not self._line else " ")
 
         for line, level in self._iter_lines(-1, False):
@@ -181,7 +181,7 @@ class Conf:
                     self._lineno,
                 )
             )
-        return next(iter(self._index))
+        return next(iter(self))
 
     def _reindex(self):
         if self._index:
