@@ -181,7 +181,7 @@ class Conf:
                     self._lineno,
                 )
             )
-        return next(iter(self._index))
+        return next(iter(self))
 
     def _reindex(self):
         if self._index:

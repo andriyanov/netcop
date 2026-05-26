@@ -331,3 +331,7 @@ def test_lines(conf: Conf):
         '    description hello world',
         '    long-description "hello world" end',
     ]
+
+def test_case_scalar():
+    conf = Conf("interface IF1\n    ip address 1.1.1.1")
+    assert conf.get("interface") == "IF1"
